@@ -22,7 +22,7 @@ class StripeManager:
         self.csv_path = os.path.join(csv_dp, f"{i}.csv")
         self.outlier = med + mad * k
 
-    def _assign_stripes(self, stripes, M=200):  # 条纹归属
+    def _assign_stripes(self, stripes, vis=False, M=200):  # 条纹归属
         """
         对平行于y轴的条纹进行主次分类和归属计算
 
@@ -59,6 +59,55 @@ class StripeManager:
                 mapping[id(closest_master)][1].append(s)
 
         self.pairs = list(mapping.values())
+
+        if vis:
+            # 创建图表
+            plt.figure(figsize=(14, 8), dpi=300)
+            plt.title("Stripes Visualization (Main vs Sub-stripes)")
+            plt.xlabel("Position (x)")
+            plt.ylabel("Length (L)")
+
+            # 为每个cluster设置不同颜色
+            colors = plt.cm.tab20(np.linspace(0, 1, len(self.pairs)))
+
+            # 绘制所有条纹
+            for idx, cluster in enumerate(self.pairs):
+                main_stripe = cluster[0]
+                sub_stripes = cluster[1]
+
+                # 绘制主条纹（矩形条）
+                plt.bar(main_stripe['x'], main_stripe['L'],
+                        width=16.0, alpha=1., color=colors[idx],
+                        edgecolor='white', linewidth=1, label=f"Cluster {idx} (Main)")
+
+                # 在条纹上方标注ID
+                plt.text(main_stripe['x'], main_stripe['L'] + 5,
+                         f"M{main_stripe['stripe_id']}",
+                         ha='center', fontsize=8)
+
+                # 绘制次条纹（矩形条）
+                for sub in sub_stripes:
+                    plt.bar(sub['x'], sub['L'],
+                            width=8, alpha=0.9, color=colors[idx],
+                            edgecolor='white', hatch='//', linewidth=1,
+                            label=f"Cluster {idx} (Sub)" if idx == 0 else "")
+
+                    # 在次条纹上方标注ID
+                    plt.text(sub['x'], sub['L'] + 1,
+                             f"S{sub['stripe_id']}",
+                             ha='center', fontsize=7, alpha=0.9)
+
+            # 添加图例并调整显示
+            handles, labels = plt.gca().get_legend_handles_labels()
+            by_label = dict(zip(labels, handles))  # 去重
+            # plt.legend(by_label.values(), by_label.keys(),
+            #            title="Stripe Types", loc='upper right',
+            #            framealpha=0.95, fontsize=9)
+
+            plt.grid(alpha=0.2, linestyle='--')
+            plt.ylim(0, 250)  # 根据数据范围设置
+            plt.tight_layout()
+            plt.savefig(f"pic/ClusteredStripes/{self.i}.png")
 
     def _convert_stripe_csv_to_list(self):  # 条纹读取（已用切线滤除）
         # 使用 default dict 按照 stripe_id 聚合数据
@@ -178,7 +227,7 @@ class StripeManager:
                     if np.max(self.sig[left:right]) >= self.outlier:
                         self.pulseInterval.append((left, right))
 
-    def pipeline1(self, y, pic_save=False):
+    def pipeline1(self, y, vis=False):
         """
         得到归类后的条纹，也就是最终形式的条纹
         针对的是单独的信号
@@ -188,11 +237,11 @@ class StripeManager:
         """
         # 1. 得到csv文件得到stripes
         stripes = self._convert_stripe_csv_to_list()
-        self._assign_stripes(stripes)
+        self._assign_stripes(stripes, vis)
         self._get_stripe_interval()   # 得到条纹区间
-        self.vis_stripe_interval(pic_save)
+        self.vis_stripe_interval(vis)
         self._get_pulse_interval()    # 得到脉冲区间
-        self.vis_pulse_interval(y, pic_save)
+        self.vis_pulse_interval(y, vis)
 
     def vis_stripe_interval(self, pic_save=False):
         if not pic_save:

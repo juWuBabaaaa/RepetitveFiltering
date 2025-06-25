@@ -5,6 +5,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+import itertools
 
 
 class GetPP:
@@ -33,7 +34,7 @@ class GetPP:
             f = np.convolve(win, f, mode="same") / sum(win)
             peaks, _ = signal.find_peaks(f)
             values = f[peaks]
-            p = np.c_[peaks, i * np.ones_like(peaks), values]   # 为了画图方便的格式
+            p = np.c_[peaks, i * np.ones_like(peaks), values]   # for plot, (peak, iter, f[peak])
             tra.predict()
             tra.update(p[:, [0, 2]])
             points.append(p)
@@ -50,16 +51,33 @@ class GetPP:
         # df.to_csv("mot_re.csv", index=False)
 
         if vis:
+            colors = ["#C52A20", "#508AB2", "#D5BA82", "#B36A6F", "#A1D0C7", "#508AB2"]
+            cycle = itertools.cycle(colors)
+
+            # scatter peaks
+            fig, ax = plt.subplots(1, 1, figsize=(12, 5))
+            ax.scatter(
+                points[:, 0], points[:, 1],
+                s=2,
+                c="#508AB2",
+            )
+            ax.set_xlabel("Position", fontsize=24)
+            ax.set_ylabel("Iteration", fontsize=24)
+            plt.savefig(f"pic/ScatterPeaks/{self.i}.png", bbox_inches='tight', transparent=True)
+            plt.close()
+
+            # plot stripe
             images = []
             fig, ax = plt.subplots(2, 1, figsize=(12, 6), sharex="col")
             images.append(ax[0].plot(self.sig))
-            ax[1].set_xlabel("position")
-            ax[0].set_ylabel("iterations")
-            ax[1].set_ylabel("iterations")
+            ax[1].set_xlabel("Position", fontsize=24)
+            ax[0].set_ylabel("Iteration", fontsize=24)
+            ax[1].set_ylabel("Iteration", fontsize=24)
             for key in tra.records.keys():
+                c = next(cycle)
                 values = np.array(tra.records[key])
-                ax[1].scatter(values[:, 0], np.arange(len(values[:, 0])), s=2)
-            plt.savefig(f"pic/TrackedStripes/{self.i}.png")
+                ax[1].scatter(values[:, 0], np.arange(len(values[:, 0])), s=2, c=c)
+            plt.savefig(f"pic/TrackedStripes/{self.i}.png", bbox_inches='tight', transparent=True)
             plt.close()
         return self.pp  # dataframe, id, loc, h
 
@@ -108,14 +126,17 @@ class GetPP:
             os.makedirs(f"pic/stripe{alpha}")
         if vis:
             fig, ax = plt.subplots(2, 1, figsize=(8, 6), sharex='col')
+            colors = ["#C52A20", "#508AB2", "#D5BA82", "#B36A6F", "#A1D0C7", "#508AB2"]
+            cycle = itertools.cycle(colors)
             ax[0].plot(self.sig)
             ax[0].set_ylim([0, 2.])
             ax[0].set_ylabel("Amplitude", fontsize=16)
             for i in f1.index:
+                c = next(cycle)
                 tmp = reindex.xs(i)
-                ax[1].scatter(tmp["loc"], np.arange(len(tmp["loc"])), s=2)
-            ax[1].set_xlabel("Position", fontsize=16)
-            ax[1].set_ylabel("Iteration", fontsize=16)
+                ax[1].scatter(tmp["loc"], np.arange(len(tmp["loc"])), s=2, c=c)
+            ax[1].set_xlabel("Position", fontsize=24)
+            ax[1].set_ylabel("Iteration", fontsize=24)
             plt.savefig(f"pic/stripe{alpha}/{self.i}.png")
             plt.close()
         return f2  # 过滤后的Dataframe。
