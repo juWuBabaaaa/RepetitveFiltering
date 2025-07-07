@@ -13,14 +13,20 @@ plt.rcParams.update({
     'font.weight': 'bold'
 })
 
-x = np.load("example_signal.npy")
-y = np.load("label.npy")
-csv_dp = "dataframe/fstripes/"
-vis = True
-predictions = []  # 预测区间
-marks = []  # 标注区间
+# # example input
+# x = np.load("example_signal.npy")
+# y = np.load("label.npy")
+
+# # whole data
+x = np.load("D:/code/fiber/label/x.npy")
+y = np.load("D:/code/fiber/label/stageI.npy")
+
+csv_dp = os.path.abspath("dataframe/fstripesFilter/")
+vis = False
+predictions = []  # prediction intervals
+marks = []  # labeled intervals
 m = x.shape[0]
-gp = GetPP()
+gp = GetPP(csv_dp)
 
 if not os.path.exists("pic/fit"):
     os.makedirs("pic/fit")
@@ -36,10 +42,13 @@ if not os.path.exists("pic/ClusteredStripes"):
 
 if not os.path.exists("pic/stripeInterval"):
     os.makedirs("pic/stripeInterval")
-if not os.path.exists("dataframe/fstripesRaw"):
-    os.makedirs("dataframe/fstripesRaw")
+
+if not os.path.exists("dataframe/fstripesFilter"):
+    os.makedirs("dataframe/fstripesFilter")
+
 if not os.path.exists("dataframe/fstripes"):
-    os.makedirs("dataframe/fstripes/")  # 过滤后的条纹
+    os.makedirs("dataframe/fstripes/")  # filtered stripes
+
 if not os.path.exists("pic/pulseInterval"):
     os.makedirs("pic/pulseInterval")
 

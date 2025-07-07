@@ -9,7 +9,9 @@ import matplotlib.pyplot as plt
 
 
 class StripeManager:
-    # 条纹聚类，针对单一信号，给出脉冲区间
+    """
+    条纹聚类，针对单一信号，给出脉冲区间
+    """
     def __init__(self, i, sig, csv_dp, k=4):
         self.i = i
         self.pairs = None
@@ -223,7 +225,7 @@ class StripeManager:
 
             # filter
             if left != right:
-                if right - left > 20:
+                if right - left > 1:
                     if np.max(self.sig[left:right]) >= self.outlier:
                         self.pulseInterval.append((left, right))
 
@@ -231,19 +233,35 @@ class StripeManager:
         """
         得到归类后的条纹，也就是最终形式的条纹
         针对的是单独的信号
+        在_get_pulse_interval中，滤除了区间长度小于1的预测
         :param y: label
-        :param pic_save: 是否保存可视化图片
+        :param vis: 是否保存可视化图片
         :return:
         """
         # 1. 得到csv文件得到stripes
         stripes = self._convert_stripe_csv_to_list()
         self._assign_stripes(stripes, vis)
         self._get_stripe_interval()   # 得到条纹区间
-        self.vis_stripe_interval(vis)
+        self._vis_stripe_interval(vis)
         self._get_pulse_interval()    # 得到脉冲区间
-        self.vis_pulse_interval(y, vis)
+        self._vis_pulse_interval(y, vis)
 
-    def vis_stripe_interval(self, pic_save=False):
+    def pipeline2(self, vis=False):
+        """
+        得到归类后的条纹，也就是最终形式的条纹
+        针对的是单独的信号
+        在_get_pulse_interval中，滤除了区间长度小于1的预测
+        :param y: label
+        :param vis: 是否保存可视化图片
+        :return:
+        """
+        # 1. 得到csv文件得到stripes
+        stripes = self._convert_stripe_csv_to_list()
+        self._assign_stripes(stripes, vis)
+        self._get_stripe_interval()   # 得到条纹区间
+        self._get_pulse_interval()    # 得到脉冲区间
+
+    def _vis_stripe_interval(self, pic_save=False):
         if not pic_save:
             return
         palette = sns.color_palette("tab20", n_colors=20)
@@ -278,7 +296,7 @@ class StripeManager:
         plt.savefig(f"pic/stripeInterval/{self.i}.png")
         plt.close()
 
-    def vis_pulse_interval(self, y, pic_save=False):
+    def _vis_pulse_interval(self, y, pic_save=False):
         """
         比较估计和标注区间
         :param y: 标注区间

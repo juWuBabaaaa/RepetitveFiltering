@@ -15,6 +15,7 @@ class EvaluateIntervals:
         self.a = pulses
         self.b = marks
         self.m = m
+        print(f"The number of samples is {m}")
         # assert len(self.b) != m, "Static signals exist!"
         # assert len(self.a) != m, "Empty estimation exists!"
         # assert len(self.a) != len(self.b), "Interval lists' length unequal!"
@@ -116,7 +117,7 @@ class EvaluateIntervals:
         total_match = 0
         total_fp = 0
         total_fn = 0
-        TP, FP, FN = 0, 0, 0
+        # TP, FP, FN = 0, 0, 0
 
         for i in tqdm(range(self.m)):
             pulse_intervals = self.a[i]
@@ -137,9 +138,9 @@ class EvaluateIntervals:
             matches, fp, fn = self.match_intervals(pulse_intervals, mark, alpha)
             if not matches:
                 continue
-            TP += len(matches)
-            FP += len(fp)
-            FN += len(fn)
+            TP = len(matches)
+            FP = len(fp)
+            FN = len(fn)
             total_match += TP
             total_fn += FN
             total_fp += FP

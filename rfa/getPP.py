@@ -10,19 +10,22 @@ import itertools
 
 class GetPP:
     """
-    use function run, generate peak pillars
+    use function run, generate peak pillars.
+    The only postprocessing is in the tangent part.
     """
 
-    def __init__(self):
+    def __init__(self, dataframe_p):
         self.sig = None
         self.pp = None   # peak pillars
         self.i = None  # id
         self.initial_guess = [300, 1., 0.5]  # for curve fit
+        self.dataframe_p = dataframe_p
 
-    def _rfa(self, vis=False):
+    def _rfa(self, vis=False, save_stripe_raw=True):
         """
         Repetitive filtering algorithm.
         :param vis: 是否可视化。
+        :param save_stripe_raw: whether save dataframe of raw stripes
         :return: the sorted peak pillars,
         """
         tra = tracker.Tracker()  # 调用MOT模型
@@ -47,8 +50,24 @@ class GetPP:
                 df_dict["id"].append(key)
                 df_dict["loc"].append(value[0])
                 df_dict["h"].append(value[1])
-        self.pp = pd.DataFrame(df_dict) #
-        # df.to_csv("mot_re.csv", index=False)
+        self.pp = pd.DataFrame(df_dict)
+
+        if save_stripe_raw:
+            dp = "dataframe/raw"
+            if not os.path.exists(dp):
+                os.makedirs(dp)
+            fp = os.path.join(dp, f"{self.i}.csv")
+            self.pp.to_csv(fp, index=False)
+            knee_dp = "knee/npy"
+            if not os.path.exists(knee_dp):
+                os.makedirs(knee_dp)
+            knee_fp = os.path.join(knee_dp, f"{self.i}.npy")
+            h = self.pp.groupby("id")["h"].mean()
+            sorted_h = np.sort(h)
+            H = np.arange(0.06, 0.5, 0.001)
+            x = np.searchsorted(sorted_h, H, side='left')
+            knee = np.c_[H, x]  # shape m*2
+            np.save(knee_fp, knee)
 
         if vis:
             colors = ["#C52A20", "#508AB2", "#D5BA82", "#B36A6F", "#A1D0C7", "#508AB2"]
@@ -86,9 +105,10 @@ class GetPP:
         return L / (1 + np.exp(-k * (x - x0)))
 
     def _tan_estimator(self, alpha):
-        dp = "D:/code/fiber/DetStageI/npy/knee/"
-        fns = os.listdir(dp)
-        arr = np.load(dp + fns[self.i])
+        # dp = "D:/code/fiber/DetStageI/npy/knee/"
+        dp = "knee/npy"
+        # fns = os.listdir(dp)
+        arr = np.load(os.path.join(dp, f"{self.i}.npy"))
         initial_guess = [1., 1., 0.5]
         x, y = arr[:, 0], arr[:, 1]
         y = 0.5 * y / y.max()
@@ -141,23 +161,23 @@ class GetPP:
             plt.close()
         return f2  # 过滤后的Dataframe。
 
-    def run(self, sig, i, vis=False):
+    def run(self, sig, i, vis=False, save_stripe_raw=True):
         """
         执行整个流程
         :param sig: 输入信号，一维向量
         :param i: 编号（第几个信号）
         :param vis: visualize?
+        :param save_stripe_raw: save raw stripes, dataframe
         :return: None
         """
         self.sig = sig
         self.i = i
-        pp = self._rfa(vis=vis)  # 获得柱状条纹 散点图
+        pp = self._rfa(vis=vis, save_stripe_raw=save_stripe_raw)  # 获得柱状条纹 散点图
+
         alpha = 1./16
         theta = self._tan_estimator(alpha=alpha)
-        # print(i, "height threshold: ", theta)
-        # self._traverse(vis=True)
-        # # self._estimator()
-        self.pp.to_csv(f"dataframe/fstripesRaw/{self.i}.csv", index=False)
+
+        # self.pp.to_csv(f"dataframe/fstripesFilter{alpha}/{self.i}.csv", index=False)
         self._traverse(vis=vis)
         filtered_pp = self._filter_pp(theta=theta, alpha=alpha, vis=True)   # dataframe: id, loc, h
-        filtered_pp.to_csv(f"dataframe/fstripes/{self.i}.csv", index=False)
+        filtered_pp.to_csv(os.path.join(self.dataframe_p, f"{self.i}.csv"), index=False)
